@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Lizard Arena - Agar.io с ящерицами</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- In-Game HUD -->
+  <div id="hud" class="hidden">
+    <!-- Top-Left Health & Score Bar -->
+    <div class="hud-panel health-panel">
+      <div class="health-header">
+        <span class="lizard-icon">🦎</span>
+        <span id="player-name-display" class="player-name">Player</span>
+      </div>
+      <div class="health-bar-container">
+        <div id="health-bar-fill" class="health-bar-fill" style="width: 100%;"></div>
+        <div class="health-bar-text">
+          <span id="score-text">100</span> <span class="unit">HP / Очков</span>
+        </div>
+      </div>
+      <div class="stats-row">
+        <span class="stat-item">🍓 Ягоды: <b id="berries-eaten-text">0</b></span>
+        <span class="stat-item">⚔️ Укусы: <b id="bites-dealt-text">0</b></span>
+      </div>
+    </div>
+
+    <!-- Top-Right Leaderboard -->
+    <div class="hud-panel leaderboard-panel">
+      <h3>🏆 Топ Ящериц</h3>
+      <ol id="leaderboard-list"></ol>
+    </div>
+
+    <!-- Bottom-Left Controls Reminder -->
+    <div class="controls-hint">
+      🖱️ <b>Мышь</b>: Управление направлением &nbsp;|&nbsp; ⚡ <b>ЛКМ / Пробел</b>: Ускорение
+    </div>
+
+    <!-- Bottom-Right Minimap -->
+    <div class="minimap-container">
+      <canvas id="minimap-canvas" width="160" height="160"></canvas>
+    </div>
+
+    <!-- Center Kill / Damage Feed -->
+    <div id="combat-feed" class="combat-feed"></div>
+  </div>
+
+  <!-- Start Menu Modal -->
+  <div id="start-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="logo-container">
+        <div class="logo-badge">🍓 + 🦎</div>
+        <h1 class="game-title">LIZARD ARENA</h1>
+        <p class="subtitle">Кушай сочные ягодки (+10 HP), расти и наноси урон соперникам!</p>
+      </div>
+
+      <div class="form-group">
+        <label for="nickname-input">Имя твоей ящерицы:</label>
+        <input type="text" id="nickname-input" maxlength="15" placeholder="Назови своего дракона" value="Геккон-Охотник" />
+      </div>
+
+      <div class="form-group">
+        <label>Выбери окрас чешуи:</label>
+        <div class="skin-selector" id="skin-selector">
+          <div class="skin-option selected" data-color="#2ECC71" data-secondary="#27AE60" style="background: linear-gradient(135deg, #2ECC71, #27AE60);"></div>
+          <div class="skin-option" data-color="#E67E22" data-secondary="#D35400" style="background: linear-gradient(135deg, #E67E22, #D35400);"></div>
+          <div class="skin-option" data-color="#9B59B6" data-secondary="#8E44AD" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);"></div>
+          <div class="skin-option" data-color="#1ABC9C" data-secondary="#16A085" style="background: linear-gradient(135deg, #1ABC9C, #16A085);"></div>
+          <div class="skin-option" data-color="#F1C40F" data-secondary="#F39C12" style="background: linear-gradient(135deg, #F1C40F, #F39C12);"></div>
+          <div class="skin-option" data-color="#E74C3C" data-secondary="#C0392B" style="background: linear-gradient(135deg, #E74C3C, #C0392B);"></div>
+          <div class="skin-option" data-color="#3498DB" data-secondary="#2980B9" style="background: linear-gradient(135deg, #3498DB, #2980B9);"></div>
+        </div>
+      </div>
+
+      <button id="play-btn" class="btn-primary">В БОЙ 🚀</button>
+
+      <div class="rules-box">
+        <p>• <b>Здоровье = Очки</b> (старт 100 HP)</p>
+        <p>• <b>1 ягодка</b> = +10 HP и визуальный рост</p>
+        <p>• <b>Укус</b>: целься головой в тело соперника, чтобы отнять у него здоровье!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="gameover-modal" class="modal-backdrop hidden">
+    <div class="modal-card gameover-card">
+      <div class="gameover-icon">💀</div>
+      <h2>Твою ящерицу победили!</h2>
+      <p id="death-cause-text">Вас укусил более крупный хищник</p>
+
+      <div class="final-stats">
+        <div class="final-stat-box">
+          <span class="label">Финальный счёт</span>
+          <span class="value" id="final-score-val">0</span>
+        </div>
+        <div class="final-stat-box">
+          <span class="label">Съедено ягод</span>
+          <span class="value" id="final-berries-val">0</span>
+        </div>
+      </div>
+
+      <button id="respawn-btn" class="btn-primary">Возродиться 🔄</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
