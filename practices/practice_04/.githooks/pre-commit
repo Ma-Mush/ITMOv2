@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Git pre-commit hook delegating to scripts/pre-commit.sh
+./scripts/pre-commit.sh
