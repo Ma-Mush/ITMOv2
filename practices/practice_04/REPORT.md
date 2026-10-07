@@ -8,7 +8,7 @@
 ## 1. Настроенная среда агента 
 
 ### 1.1. Правила проекта (`AGENTS.md` и `GEMINI.md`)
-* **Файлы:** [`AGENTS.md`](./AGENTS.md), [`GEMINI.md`](./GEMINI.md), [`.agents/rules/game-rules.md`](./.agents/rules/game-rules.md), [`.agents/rules/performance.md`](./.agents/rules/performance.md).
+* **Файлы:** [`AGENTS.md`](./AGENTS.md), [`GEMINI.md`](./GEMINI.md), [`docs/requirements.md`](./docs/requirements.md), [`docs/style-guide.md`](./docs/style-guide.md), [`docs/HANDOFF.md`](./docs/HANDOFF.md), [`.agents/rules/game-rules.md`](./.agents/rules/game-rules.md), [`.agents/rules/performance.md`](./.agents/rules/performance.md).
 * **Применение в реальной работе:**
   * Зафиксированы незыблемые физические и боевые формулы:
     * Формула масштабирования: $S = \sqrt{\frac{\max(10, \text{score})}{100}}$
