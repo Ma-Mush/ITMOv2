@@ -75,6 +75,128 @@ class ShopTest(unittest.TestCase):
         self.assertIn("TEST_ALICE", result["content"])
 
 
+class SecurityRegressionTest(unittest.TestCase):
+    """Regression tests verifying mitigations for all audited vulnerabilities."""
+
+    def setUp(self):
+        self.shop = Shop()
+        self.addCleanup(self.shop.close)
+        self.alice_auth = self.login("alice", "learn-alice")
+        self.bob_auth = self.login("bob", "learn-bob")
+        self.staff_auth = self.login("staff", "learn-staff")
+
+    def request(self, method, path, body=None, headers=None):
+        with self.shop.lock:
+            return self.shop.dispatch(method, path, body or {}, headers or {})
+
+    def login(self, username, password):
+        status, result = self.request("POST", "/login", {"username": username, "password": password})
+        self.assertEqual(status, 200)
+        return {"X-Token": result["token"]}
+
+    def test_xrole_spoofing_rejected_without_token(self):
+        status, body = self.request("GET", "/admin/export", headers={"X-Role": "staff"})
+        self.assertEqual(status, 403)
+        self.assertIn("staff only", body.get("error", ""))
+
+    def test_xrole_spoofing_rejected_with_customer_token(self):
+        headers = {**self.alice_auth, "X-Role": "staff"}
+        status, body = self.request("GET", "/admin/export", headers=headers)
+        self.assertEqual(status, 403)
+
+    def test_sqli_in_profile_rejected(self):
+        status, _ = self.request("GET", "/profile?id=1%20OR%201=1", headers=self.alice_auth)
+        self.assertEqual(status, 400)
+
+    def test_sqli_in_search_neutralized(self):
+        status, results = self.request("GET", "/search?q=%27%20UNION%20SELECT%20id,owner,product,price%20FROM%20orders--",
+                                       headers=self.staff_auth)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(results), 0)
+
+    def test_idor_cross_customer_profile_blocked(self):
+        status, _ = self.request("GET", "/profile?id=2", headers=self.alice_auth)
+        self.assertEqual(status, 403)
+
+    def test_idor_orders_blocked_for_unauthenticated(self):
+        status, _ = self.request("GET", "/orders")
+        self.assertEqual(status, 401)
+
+    def test_orders_isolated_per_customer(self):
+        status, orders = self.request("GET", "/orders", headers=self.alice_auth)
+        self.assertEqual(status, 200)
+        self.assertTrue(all(o["owner"] == 1 for o in orders))
+
+    def test_price_tampering_ignored(self):
+        status, order = self.request("POST", "/orders", {"product": "chair", "price": 0.01}, headers=self.alice_auth)
+        self.assertEqual(status, 201)
+        self.assertEqual(order["price"], 5000.0)
+
+    def test_path_traversal_in_files_blocked(self):
+        status, _ = self.request("GET", "/files?user=alice&path=../../private/operator-note.txt", headers=self.alice_auth)
+        self.assertEqual(status, 400)
+
+    def test_cross_customer_file_read_blocked(self):
+        status, _ = self.request("GET", "/files?user=bob&path=receipt.txt", headers=self.alice_auth)
+        self.assertEqual(status, 403)
+
+    def test_debug_logs_forbidden_for_customers(self):
+        status, _ = self.request("GET", "/debug/logs", headers=self.alice_auth)
+        self.assertEqual(status, 403)
+
+    def test_debug_logs_masks_passwords_for_staff(self):
+        status, logs = self.request("GET", "/debug/logs", headers=self.staff_auth)
+        self.assertEqual(status, 200)
+        login_logs = [l for l in logs if l.get("target") == "/login" and isinstance(l.get("body"), dict)]
+        for entry in login_logs:
+            if "password" in entry["body"]:
+                self.assertEqual(entry["body"]["password"], "******")
+
+    def test_stored_xss_escaped_in_html(self):
+        payload = "<script>alert('xss')</script>"
+        status, _ = self.request("POST", "/reviews", {"product": "chair", "text": payload})
+        self.assertEqual(status, 201)
+        status, html_content = self.request("GET", "/reviews/view")
+        self.assertEqual(status, 200)
+        self.assertNotIn(payload, html_content)
+        self.assertIn("&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;", html_content)
+
+    def test_assistant_execute_requires_auth(self):
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "read_file", "arguments": {"path": "files/alice/receipt.txt"}}
+        })
+        self.assertEqual(status, 401)
+
+    def test_assistant_delete_tree_forbidden(self):
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "delete_tree", "arguments": {"path": "files/bob"}}
+        }, headers=self.alice_auth)
+        self.assertEqual(status, 403)
+
+    def test_assistant_cannot_read_foreign_receipt(self):
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "read_file", "arguments": {"path": "files/bob/receipt.txt"}}
+        }, headers=self.alice_auth)
+        self.assertEqual(status, 403)
+
+    def test_assistant_cannot_read_operator_secret(self):
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "read_file", "arguments": {"path": "private/operator-note.txt"}}
+        }, headers=self.alice_auth)
+        self.assertEqual(status, 403)
+
+    def test_assistant_export_profiles_requires_staff(self):
+        status, _ = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "export_profiles"}
+        }, headers=self.alice_auth)
+        self.assertEqual(status, 403)
+        status, res = self.request("POST", "/assistant/execute", {
+            "decision": {"tool": "export_profiles"}
+        }, headers=self.staff_auth)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(res), 2)
+
+
 class SandboxTest(unittest.TestCase):
     def setUp(self):
         self.sandbox = Sandbox()
