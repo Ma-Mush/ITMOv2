@@ -1,0 +1,34 @@
+{
+  "name": "lizard-arena",
+  "version": "1.0.0",
+  "description": "Agar.io-style lizard arena game with berries, combat damage, and multiplayer bots",
+  "type": "module",
+  "scripts": {
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build": "tsc && vite build",
+    "check": "sh scripts/check.sh",
+    "mcp:server": "tsx server/mcp/arena-mcp-server.ts",
+    "test:mcp": "node scripts/test_mcp.mjs",
+    "preview": "vite preview",
+    "test:e2e": "node scripts/test_gameplay.mjs",
+    "pre-commit": "./scripts/pre-commit.sh",
+    "start": "tsx server/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "concurrently": "^9.1.0",
+    "playwright": "^1.63.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  }
+}
