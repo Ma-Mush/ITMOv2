@@ -1,0 +1,103 @@
+{
+  "T-01_spoof_xrole_unauth": {
+    "status": 403,
+    "body": {
+      "error": "staff only"
+    }
+  },
+  "T-01_spoof_xrole_customer": {
+    "status": 403,
+    "body": {
+      "error": "staff only"
+    }
+  },
+  "T-04_sqli_profile": {
+    "status": 400,
+    "body": {
+      "error": "invalid id"
+    }
+  },
+  "T-04_sqli_search": {
+    "status": 200,
+    "body": []
+  },
+  "T-03_price_tampering": {
+    "status": 201,
+    "body": {
+      "id": 3,
+      "owner": 1,
+      "product": "chair",
+      "price": 5000
+    }
+  },
+  "T-08_idor_orders_unauth": {
+    "status": 401,
+    "body": {
+      "error": "login required"
+    }
+  },
+  "T-08_idor_profile_bob": {
+    "status": 403,
+    "body": {
+      "error": "forbidden"
+    }
+  },
+  "T-08_alice_orders": {
+    "status": 200,
+    "count": 2,
+    "owners": [
+      1,
+      1
+    ]
+  },
+  "T-09_read_operator_note": {
+    "status": 400,
+    "body": {
+      "error": "invalid path traversal"
+    }
+  },
+  "T-09_read_bob_receipt": {
+    "status": 403,
+    "body": {
+      "error": "forbidden"
+    }
+  },
+  "T-07_logs_unauth": {
+    "status": 403,
+    "body": {
+      "error": "forbidden: staff only"
+    }
+  },
+  "T-07_logs_customer": {
+    "status": 403,
+    "body": {
+      "error": "forbidden: staff only"
+    }
+  },
+  "T-07_logs_staff_masked": {
+    "status": 200,
+    "masked": true
+  },
+  "T-12_stored_xss": {
+    "raw_payload_in_html": false,
+    "escaped_in_html": true
+  },
+  "T-11_delete_tree": {
+    "status": 403,
+    "body": {
+      "error": "forbidden: delete_tree is disabled in assistant execution"
+    }
+  },
+  "T-11_export_customer": {
+    "status": 403,
+    "body": {
+      "error": "forbidden: export_profiles requires staff role"
+    }
+  },
+  "T-11_read_bob_receipt": {
+    "status": 403,
+    "body": {
+      "error": "forbidden: customers can only read their own files"
+    }
+  }
+}
