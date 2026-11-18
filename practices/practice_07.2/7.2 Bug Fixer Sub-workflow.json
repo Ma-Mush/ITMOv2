@@ -1,0 +1,737 @@
+{
+  "name": "7.2 Bug Fixer Sub-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "issue_number"
+            },
+            {
+              "name": "title"
+            },
+            {
+              "name": "body"
+            }
+          ]
+        }
+      },
+      "id": "744078a9-661c-4e72-865e-f39a185b6df4",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        2928,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Ты Senior Python-разработчик. Тебе передан баг-репорт по GitHub Issue #{{ $json.issue_number }}: {{ $json.title }}.\nОписание: {{ $json.body }}\n\nФайл: {{ $json.file_path }}\nТекущий код файла:\n```python\n{{ $json.original_code }}\n```\n\nЗадача:\n1. Проанализируй баг и код. Исправь ошибку деления на ноль. Если в файле уже есть функция calculate_reading_time, исправь нулевую скорость: задай дефолтную скорость чтения speed = 200 слов/мин и добавь защиту if speed <= 0: speed = 200. Если функции в файле нет, добавь её безопасную реализацию.\n2. Сохрани все остальные функции и импорты файла без изменений.\n3. Верни ТОЛЬКО готовый Python-код файла целиком. Без markdown-разметки (не оборачивай в ```python), без пояснений и вступительных слов. Только чистый исходный код.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        3680,
+        48
+      ],
+      "id": "33e7b2e9-75e8-47c0-98cb-a0b7b1d2ff85",
+      "name": "AI Fix Bug1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "openai/gpt-5.5",
+          "mode": "list",
+          "cachedResultName": "openai/gpt-5.5"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3680,
+        224
+      ],
+      "id": "fbf96cc8-6fd3-4eb0-977e-3e224807e32d",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "cMiBlUOZQBAwoKgm",
+          "name": "OpenAI account 24"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const mainData = $('Get Main SHA').first().json || {};\nconst mainSha = mainData.object ? mainData.object.sha : '';\n\nconst context = $('Prepare Bug Context').first().json;\nconst llmText = $('AI Fix Bug1').first().json.text || '';\n\n// Очистка от ```python и ``` если нейросеть добавила markdown-блоки\nlet cleanCode = llmText.trim();\nif (cleanCode.startsWith('```python')) {\n  cleanCode = cleanCode.replace(/^```python\\s*/, '').replace(/\\s*```$/, '');\n} else if (cleanCode.startsWith('```')) {\n  cleanCode = cleanCode.replace(/^```\\s*/, '').replace(/\\s*```$/, '');\n}\n\nconst contentBase64 = globalThis.Buffer.from(cleanCode, 'utf-8').toString('base64');\nconst branchName = `fix/issue-${context.issue_number}`;\n\nreturn [{\n  json: {\n    branch_name: branchName,\n    main_sha: mainSha,\n    file_path: context.file_path,\n    file_sha: context.file_sha,\n    content_base64: contentBase64,\n    clean_code: cleanCode,\n    original_code: context.original_code,\n    issue_number: context.issue_number,\n    title: context.title\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4240,
+        48
+      ],
+      "id": "ac702798-513f-46f9-a18c-b86f4d21d508",
+      "name": "Prepare Commit Data1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Ты Senior Tech Lead. Проведи автоматическое код-ревью исправлений для PR #{{ $('Create Pull Request').first().json.number }} (Issue #{{ $('Prepare Commit Data1').first().json.issue_number }}).\n\nИсходный код файла:\n```python\n{{ $('Prepare Commit Data1').first().json.original_code }}\n```\n\nИсправленный код файла:\n```python\n{{ $('Prepare Commit Data1').first().json.clean_code }}\n```\n\nОцени корректность исправления ошибки деления на ноль и безопасность изменений. Напиши краткий вердикт (2 предложения). Если код качественный и решает проблему без побочных эффектов, верни approved: true. Если есть сомнения, критические замечания или ошибки, верни approved: false. В поле comment подробно обоснуй свой вердикт.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        5168,
+        256
+      ],
+      "id": "f5338219-f9fa-4068-aa54-e7db23246fbc",
+      "name": "AI Code Review1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "openai/gpt-5.5",
+          "mode": "list",
+          "cachedResultName": "openai/gpt-5.5"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        5168,
+        432
+      ],
+      "id": "bc4254c2-b6c6-461a-bfbd-8b04c8b4f17e",
+      "name": "OpenAI Chat Model ",
+      "credentials": {
+        "openAiApi": {
+          "id": "cMiBlUOZQBAwoKgm",
+          "name": "OpenAI account 24"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/Ma-Mush/sample-python-project/pulls/{{ $('Create Pull Request').first().json.number }}/merge",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"commit_title\": \"Merge PR #{{ $('Create Pull Request').first().json.number }} from {{ $('Prepare Commit Data1').first().json.branch_name }}\",\n  \"merge_method\": \"squash\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5984,
+        256
+      ],
+      "id": "0d105a86-53da-417e-a6ac-68e380c11d00",
+      "name": "Merge Pull Request1",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/Ma-Mush/sample-python-project/issues/{{ $('Prepare Commit Data1').first().json.issue_number }}/comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"body\": {{ JSON.stringify(\"🎉 **Автономный баг-фикс завершён:**\\n- 🌿 Создана ветка `\" + $('Prepare Commit Data1').first().json.branch_name + \"`\\n- 🚀 Открыт Pull Request #\" + $('Create Pull Request').first().json.number + \"\\n- 🤖 Проведено AI-ревью и получен аппрув\\n- 🔀 Код смержен в ветку `main`\\n\\nIssue успешно закрыт.\") }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6160,
+        256
+      ],
+      "id": "8d76a3a1-1f53-4a6d-b5f1-9732067fb762",
+      "name": "Comment on Closed Issue1",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"approved\": true,\n    \"comment\": \"Исправление корректно устраняет деление на ноль. Код безопасен и готов к слиянию\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        5312,
+        432
+      ],
+      "id": "38da3504-62d4-40f8-93d5-a9d9e175d875",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "acbeae7f-2021-41cb-8635-ac6d0355f2a3",
+              "leftValue": "={{ $json.output.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        5504,
+        336
+      ],
+      "id": "310a2cf5-b42a-46b0-b779-50a6f79d3da5",
+      "name": "Approved?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/Ma-Mush/sample-python-project/issues/{{ $('Create Pull Request').first().json.number }}/comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"body\": {{ JSON.stringify(\"🤖 **[AI Code Review: APPROVED]**\\n\\n\" + $json.output.comment + \"\\n\\n✅ **Verdict: ОДОБРЕНО К АВТО-МЕРЖУ В MAIN**\") }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5808,
+        256
+      ],
+      "id": "55295907-359e-4e13-b0fb-140d86c0e301",
+      "name": "Post Approved Review Comment",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/Ma-Mush/sample-python-project/issues/{{ $('Create Pull Request').first().json.number }}/comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"body\": {{ JSON.stringify(\"🤖 **[AI Code Review: CHANGES REQUESTED]**\\n\\n\" + $json.output.comment + \"\\n\\n❌ **Verdict: АВТО-МЕРЖ ЗАБЛОКИРОВАН. Требуются исправления.**\") }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5808,
+        416
+      ],
+      "id": "2cbd1903-429b-4ee9-b646-746072601bc4",
+      "name": "Post Rejected Review Comment",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/Ma-Mush/sample-python-project/issues/{{ $('Prepare Commit Data1').first().json.issue_number }}/comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"body\": {{ JSON.stringify(\"⚠️ **Автоматическое слияние приостановлено:**\\n\\nAI-ревьюер выявил замечания в PR #\" + $('Create Pull Request').first().json.number + \":\\n> \" + $json.output.comment + \"\\n\\nPR оставлен открытым для ручной проверки разработчиком.\") }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6032,
+        416
+      ],
+      "id": "33c2ea8b-8320-4bcf-9be3-a17da0bdd7c3",
+      "name": "Comment on Rejected Issue",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/Ma-Mush/sample-python-project/pulls",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"fix: resolve issue #{{ $('Prepare Commit Data1').first().json.issue_number }} (automated fix)\",\n  \"head\": \"{{ $('Prepare Commit Data1').first().json.branch_name }}\",\n  \"base\": \"main\",\n  \"body\": \"Automated bugfix for #{{ $('Prepare Commit Data1').first().json.issue_number }}.\\n\\nCloses #{{ $('Prepare Commit Data1').first().json.issue_number }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4912,
+        48
+      ],
+      "id": "acf7a8db-8401-4262-8cc1-352912cc6a01",
+      "name": "Create Pull Request",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/Ma-Mush/sample-python-project/contents/{{ $('Prepare Commit Data1').first().json.file_path }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"fix: resolve issue #{{ $('Prepare Commit Data1').first().json.issue_number }} - {{ $('Prepare Commit Data1').first().json.title }}\",\n  \"content\": \"{{ $('Prepare Commit Data1').first().json.content_base64 }}\",\n  \"sha\": \"{{ $('Prepare Commit Data1').first().json.file_sha }}\",\n  \"branch\": \"{{ $('Prepare Commit Data1').first().json.branch_name }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4672,
+        48
+      ],
+      "id": "dfc5d709-09ac-4e5a-b1bd-750d6709dc4c",
+      "name": "Commit Fix",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/Ma-Mush/sample-python-project/git/refs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"ref\": \"refs/heads/{{ $json.branch_name }}\",\n  \"sha\": \"{{ $json.main_sha }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4464,
+        48
+      ],
+      "id": "bfa838e0-5eec-444b-84d6-2502a9bf0d33",
+      "name": "Create Branch",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/Ma-Mush/sample-python-project/git/ref/heads/main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4032,
+        48
+      ],
+      "id": "d6934b18-0d9c-4cf1-ae8e-6cd0bffa2e77",
+      "name": "Get Main SHA",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Достаем файл из main и данные issue из триггера\nconst fileData = $('Get File Content').first().json || {};\nconst rawBase64 = fileData.content || '';\nconst decodedCode = globalThis.Buffer.from(rawBase64, 'base64').toString('utf-8');\n\nconst triggerData = $('When Executed by Another Workflow').first()?.json || {};\nconst issueNumber = triggerData.issue_number || 8;\nconst issueTitle = triggerData.title || 'Ошибка в делении на 0';\nconst issueBody = triggerData.body || 'В функции calculate_reading_time в blog/views.py происходит деление на ноль';\n\nreturn [{\n  json: {\n    issue_number: issueNumber,\n    title: issueTitle,\n    body: issueBody,\n    file_path: fileData.path || 'blog/views.py',\n    file_sha: fileData.sha,\n    original_code: decodedCode\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3408,
+        -192
+      ],
+      "id": "ea8fe19a-49b6-45c9-823f-91295bf3e47b",
+      "name": "Prepare Bug Context"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/Ma-Mush/sample-python-project/contents/blog/views.py?ref=main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3168,
+        -192
+      ],
+      "id": "7e60174d-5975-4448-90cd-b1d618c81a43",
+      "name": "Get File Content",
+      "credentials": {
+        "githubApi": {
+          "id": "Gs1xIzdTwnR9fAw5",
+          "name": "GitHub account 32"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get File Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Fix Bug1": {
+      "main": [
+        [
+          {
+            "node": "Get Main SHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Fix Bug1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Commit Data1": {
+      "main": [
+        [
+          {
+            "node": "Create Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Code Review1": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model ": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Code Review1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Pull Request1": {
+      "main": [
+        [
+          {
+            "node": "Comment on Closed Issue1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Code Review1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Post Approved Review Comment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post Rejected Review Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Approved Review Comment": {
+      "main": [
+        [
+          {
+            "node": "Merge Pull Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Rejected Review Comment": {
+      "main": [
+        [
+          {
+            "node": "Comment on Rejected Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Pull Request": {
+      "main": [
+        [
+          {
+            "node": "AI Code Review1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit Fix": {
+      "main": [
+        [
+          {
+            "node": "Create Pull Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Branch": {
+      "main": [
+        [
+          {
+            "node": "Commit Fix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Main SHA": {
+      "main": [
+        [
+          {
+            "node": "Prepare Commit Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Bug Context": {
+      "main": [
+        [
+          {
+            "node": "AI Fix Bug1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Content": {
+      "main": [
+        [
+          {
+            "node": "Prepare Bug Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c9592e6c-4d6c-4fcb-8a49-118f89e0c15b",
+  "meta": {
+    "instanceId": "68dbbb4e8fa686c3fd4e9982ade6836edb66976f207553e7ac22df961581c78c"
+  },
+  "nodeGroups": [],
+  "id": "C0trZB23y1kasKAw",
+  "tags": []
+}
