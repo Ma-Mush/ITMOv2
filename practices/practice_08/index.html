@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Lizard Arena - Agar.io с ящерицами</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Fredoka:wght@600;700;800;900&family=Nunito:wght@700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- In-Game HUD -->
+  <div id="hud" class="hidden">
+    <!-- Top-Left Health & Score Bar -->
+    <div class="hud-panel health-panel">
+      <div class="health-header">
+        <span class="lizard-icon">🦎</span>
+        <span id="player-name-display" class="player-name">Player</span>
+      </div>
+      <div class="health-bar-container">
+        <div id="health-bar-fill" class="health-bar-fill" style="width: 100%;"></div>
+        <div class="health-bar-text">
+          <span id="score-text">100</span> <span class="unit">HP / Очков</span>
+        </div>
+      </div>
+      <div class="stats-row">
+        <span class="stat-item">🍓 Ягоды: <b id="berries-eaten-text">0</b></span>
+        <span class="stat-item">⚔️ Укусы: <b id="bites-dealt-text">0</b></span>
+      </div>
+    </div>
+
+    <!-- Top-Right Leaderboard -->
+    <div class="hud-panel leaderboard-panel">
+      <h3>🏆 Топ Ящериц</h3>
+      <ol id="leaderboard-list"></ol>
+    </div>
+
+    <!-- Bottom-Left Controls Reminder -->
+    <div class="controls-hint">
+      🖱️ <b>Мышь</b>: Управление направлением &nbsp;|&nbsp; ⚡ <b>ЛКМ / Пробел</b>: Ускорение
+    </div>
+
+    <!-- Bottom-Right Minimap -->
+    <div class="minimap-container">
+      <canvas id="minimap-canvas" width="160" height="160"></canvas>
+    </div>
+
+    <!-- Center Kill / Damage Feed -->
+    <div id="combat-feed" class="combat-feed"></div>
+  </div>
+
+  <!-- Start Menu Modal (Slither.io Authentic Aesthetic) -->
+  <div id="start-modal" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="start-title">
+    <!-- Top-Right Graphics Badge -->
+    <div class="corner-widget corner-tr" title="Качество графики: Высокое">
+      <span class="corner-icon">🦎</span>
+      <span class="corner-label">Graphics: High quality</span>
+    </div>
+
+    <!-- Center Lobby Form Container (Floating freely in Slither.io style) -->
+    <div class="lobby-center">
+      <!-- Network / Connection Alert Banner -->
+      <div id="connection-alert" class="alert-banner hidden" role="alert">
+        <div class="alert-content">
+          <span class="alert-icon">⚠️</span>
+          <span id="connection-alert-text">Ошибка соединения: Сервер недоступен</span>
+        </div>
+        <button id="retry-conn-btn" type="button" class="alert-action-btn">Повторить</button>
+      </div>
+
+      <!-- Authentic Slither 3D Rounded Logo with Top-to-Bottom Shading -->
+      <div class="logo-wrapper">
+        <h1 id="start-title" class="slither-logo" aria-label="lizard.io">
+          <span class="logo-part-green">lizard.</span><span class="logo-part-purple">io</span>
+        </h1>
+        <p class="slither-subtitle">Eat berries to grow longer!</p>
+      </div>
+
+      <!-- Form Inputs Group -->
+      <div class="slither-form-group">
+        <label for="nickname-input" class="sr-only">Имя твоей ящерицы:</label>
+        <div class="input-container">
+          <input 
+            type="text" 
+            id="nickname-input" 
+            class="slither-input"
+            maxlength="15" 
+            placeholder="Nickname" 
+            value="Геккон-Охотник" 
+            autocomplete="nickname"
+            aria-describedby="nickname-error" 
+          />
+        </div>
+        <!-- Slither-style Validation Error Bubble -->
+        <div id="nickname-error" class="slither-error-bubble hidden" role="alert">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text">Имя должно содержать от 3 до 15 символов</span>
+        </div>
+      </div>
+
+      <!-- Play Button (Glossy Slither Pill with Top-to-Bottom Shading) -->
+      <div class="play-btn-wrapper">
+        <button id="play-btn" class="slither-play-btn" type="button">
+          <span id="play-btn-spinner" class="spinner hidden" aria-hidden="true"></span>
+          <span id="play-btn-text">Play</span>
+        </button>
+      </div>
+
+      <!-- Rules Hint -->
+      <div class="slither-rules-hint">
+        <span>🍓 1 ягодка = +10 HP</span> • <span>⚔️ Укус: целься головой в тело</span>
+      </div>
+    </div>
+
+    <!-- Bottom-Left Change Skin Widget -->
+    <div class="corner-widget corner-bl" id="change-skin-widget">
+      <!-- 7 Skin circles in a sleek row -->
+      <div class="skin-selector" id="skin-selector" role="radiogroup" aria-label="Выбор окраса ящерицы">
+        <div class="skin-option selected" tabindex="0" role="radio" aria-checked="true" aria-label="Изумрудный скин" data-color="#2ECC71" data-secondary="#27AE60" style="background: linear-gradient(135deg, #2ECC71, #27AE60);"></div>
+        <div class="skin-option" tabindex="0" role="radio" aria-checked="false" aria-label="Янтарный скин" data-color="#E67E22" data-secondary="#D35400" style="background: linear-gradient(135deg, #E67E22, #D35400);"></div>
+        <div class="skin-option" tabindex="0" role="radio" aria-checked="false" aria-label="Фиолетовый скин" data-color="#9B59B6" data-secondary="#8E44AD" style="background: linear-gradient(135deg, #9B59B6, #8E44AD);"></div>
+        <div class="skin-option" tabindex="0" role="radio" aria-checked="false" aria-label="Бирюзовый скин" data-color="#1ABC9C" data-secondary="#16A085" style="background: linear-gradient(135deg, #1ABC9C, #16A085);"></div>
+        <div class="skin-option" tabindex="0" role="radio" aria-checked="false" aria-label="Золотой скин" data-color="#F1C40F" data-secondary="#F39C12" style="background: linear-gradient(135deg, #F1C40F, #F39C12);"></div>
+        <div class="skin-option" tabindex="0" role="radio" aria-checked="false" aria-label="Алый скин" data-color="#E74C3C" data-secondary="#C0392B" style="background: linear-gradient(135deg, #E74C3C, #C0392B);"></div>
+        <div class="skin-option" tabindex="0" role="radio" aria-checked="false" aria-label="Лазурный скин" data-color="#3498DB" data-secondary="#2980B9" style="background: linear-gradient(135deg, #3498DB, #2980B9);"></div>
+      </div>
+      <div class="corner-trigger">
+        <span class="corner-icon">🦎</span>
+        <span class="corner-label">Change Skin</span>
+      </div>
+    </div>
+
+    <!-- Bottom-Right Choose Server Widget -->
+    <div class="corner-widget corner-br" title="Сервер: Localhost (Active)">
+      <span class="corner-icon">🌐</span>
+      <span class="corner-label">Choose Server</span>
+    </div>
+
+    <!-- Bottom-Center Footer Links -->
+    <div class="slither-footer">
+      <span>privacy</span> - <span>terms of service</span> - <span>contact</span>
+    </div>
+  </div>
+
+  <!-- Game Over Modal Specification -->
+  <div id="gameover-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="gameover-title">
+    <div class="modal-card gameover-card">
+      
+      <!-- Header: Status & Killer Banner -->
+      <div class="gameover-header">
+        <h2 id="gameover-title" class="gameover-title">Твою ящерицу победили!</h2>
+        <div class="killer-banner" id="killer-banner">
+          <span class="killer-label">Победитель:</span>
+          <span class="killer-name" id="killer-name-display">Хищный Варан</span>
+        </div>
+      </div>
+
+      <!-- Metrics Grid: 6 Distinct Stat Cards -->
+      <div class="stats-grid" id="stats-grid" aria-label="Итоговая статистика матча">
+        
+        <!-- Card 1: Final Score (Primary Accent) -->
+        <div class="stat-card stat-card-featured" id="card-final-score">
+          <div class="stat-card-header">
+            <span class="stat-icon">🏆</span>
+            <span class="stat-label">Финальный счёт</span>
+          </div>
+          <div class="stat-value" id="val-final-score">0</div>
+        </div>
+
+        <!-- Card 2: Survival Time -->
+        <div class="stat-card" id="card-survival-time">
+          <div class="stat-card-header">
+            <span class="stat-icon">⏱️</span>
+            <span class="stat-label">Время жизни</span>
+          </div>
+          <div class="stat-value" id="val-survival-time">00:00</div>
+        </div>
+
+        <!-- Card 3: Berries Eaten -->
+        <div class="stat-card" id="card-berries">
+          <div class="stat-card-header">
+            <span class="stat-icon">🍓</span>
+            <span class="stat-label">Ягод съедено</span>
+          </div>
+          <div class="stat-value" id="val-berries-eaten">0</div>
+        </div>
+
+        <!-- Card 4: Damage Dealt -->
+        <div class="stat-card" id="card-damage">
+          <div class="stat-card-header">
+            <span class="stat-icon">⚔️</span>
+            <span class="stat-label">Урон врагам</span>
+          </div>
+          <div class="stat-value" id="val-damage-dealt">0</div>
+        </div>
+
+        <!-- Card 5: Enemies Defeated (Kills) -->
+        <div class="stat-card" id="card-kills">
+          <div class="stat-card-header">
+            <span class="stat-icon">🎯</span>
+            <span class="stat-label">Врагов добито</span>
+          </div>
+          <div class="stat-value" id="val-enemies-killed">0</div>
+        </div>
+
+        <!-- Card 6: Peak Lizard Scale -->
+        <div class="stat-card" id="card-max-scale">
+          <div class="stat-card-header">
+            <span class="stat-icon">🦎</span>
+            <span class="stat-label">Макс. размер</span>
+          </div>
+          <div class="stat-value" id="val-max-scale">1.00x</div>
+        </div>
+
+      </div>
+
+      <!-- Fallback Manual Copy Container (Shown only on clipboard error) -->
+      <div id="clipboard-fallback" class="clipboard-fallback hidden">
+        <p class="fallback-tip">Скопируйте результат вручную (Ctrl + C):</p>
+        <input type="text" id="clipboard-fallback-input" readonly />
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="modal-actions">
+        <button id="respawn-btn" class="btn-primary btn-respawn">
+          <span class="btn-icon">🔄</span>
+          <span class="btn-text">Играть снова</span>
+        </button>
+
+        <button id="copy-stats-btn" class="btn-secondary btn-copy">
+          <span class="btn-icon">📋</span>
+          <span class="btn-text">Скопировать результат</span>
+        </button>
+      </div>
+
+      <!-- Toast Notification for Micro-Interactions -->
+      <div id="gameover-toast" class="gameover-toast hidden" role="status" aria-live="polite"></div>
+
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lizard.io - Интерактивный прототип интерфейса (Стиль Slither.io)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Fredoka:wght@600;700;800;900&family=Nunito:wght@700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #161c22;
+      --input-bg: #464265;
+      --input-placeholder: #8c82ab;
+      --subtitle-color: #7b6a98;
+      --slither-green-top: #5dfc7c;
+      --slither-green-mid: #2ecc71;
+      --slither-green-bot: #13833d;
+      --slither-purple-top: #c77bff;
+      --slither-purple-mid: #9e4bf9;
+      --slither-purple-bot: #5b13b8;
+      --ring: #a855f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Fredoka', 'Outfit', sans-serif;
+      background: var(--bg-canvas);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Top Demo Switcher Toolbar */
+    .demo-toolbar {
+      background: rgba(18, 24, 32, 0.96);
+      border-bottom: 1.5px solid rgba(255, 255, 255, 0.1);
+      padding: 10px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .demo-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #2ecc71;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .demo-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .demo-btn {
+      background: #25233c;
+      color: #cbd5e1;
+      border: 1px solid #3c385c;
+      padding: 7px 13px;
+      border-radius: 9999px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .demo-btn:hover {
+      background: #363259;
+      color: #fff;
+    }
+
+    .demo-btn.active {
+      background: linear-gradient(135deg, #2ecc71, #16a34a);
+      border-color: #4ade80;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(46, 204, 113, 0.45);
+    }
+
+    .demo-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      padding: 20px;
+      min-height: calc(100vh - 60px);
+    }
+
+    /* Slither Floating Lobby Center */
+    .lobby-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      animation: modalFadeIn 0.3s ease;
+      z-index: 10;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* 3D Slither Logo with Top-to-Bottom Shading */
+    .slither-logo {
+      font-family: 'Fredoka', cursive, sans-serif;
+      font-size: 6.2rem;
+      font-weight: 900;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      margin: 0 0 16px 0;
+      letter-spacing: -2px;
+    }
+
+    .logo-green {
+      background: linear-gradient(180deg, #5dfc7c 0%, #30d257 45%, #18983c 85%, #0f752d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 6px 0 #0d5424) drop-shadow(0 12px 24px rgba(0, 0, 0, 0.9));
+    }
+
+    .logo-purple {
+      background: linear-gradient(180deg, #c77bff 0%, #9e4bf9 45%, #6a1cdb 85%, #4b0e9e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 6px 0 #3b0e77) drop-shadow(0 12px 24px rgba(0, 0, 0, 0.9));
+    }
+
+    .slither-subtitle {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.05rem;
+      color: var(--subtitle-color);
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      margin-bottom: 26px;
+    }
+
+    /* Slither Pill Input */
+    .slither-input {
+      width: 320px;
+      height: 50px;
+      background: var(--input-bg);
+      border-radius: 9999px;
+      border: none;
+      outline: none;
+      padding: 0 24px;
+      font-size: 1.15rem;
+      font-family: 'Outfit', sans-serif;
+      color: #fff;
+      text-align: center;
+      box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.4);
+      margin-bottom: 18px;
+      transition: all 0.2s;
+    }
+
+    .slither-input::placeholder {
+      color: var(--input-placeholder);
+    }
+
+    .slither-input:focus-visible {
+      box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.55), 0 0 16px rgba(168, 85, 247, 0.6), 0 0 0 2px #a855f7;
+    }
+
+    .slither-input.input-error {
+      box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.55), 0 0 16px rgba(239, 68, 68, 0.7), 0 0 0 2px #ef4444 !important;
+    }
+
+    /* Slither Glossy Play Button with 3D Shading */
+    .slither-play-btn {
+      width: 124px;
+      height: 48px;
+      border-radius: 9999px;
+      background: linear-gradient(180deg, #4de084 0%, #29be65 48%, #199c4a 85%, #13833d 100%);
+      border: none;
+      font-family: 'Fredoka', cursive, sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #105c28, 0 8px 18px rgba(0, 0, 0, 0.6);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.1s, box-shadow 0.1s, filter 0.15s;
+    }
+
+    .slither-play-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #105c28, 0 12px 24px rgba(0, 0, 0, 0.7);
+      filter: brightness(1.08);
+    }
+
+    .slither-play-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #105c28, 0 4px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .slither-play-btn:disabled {
+      opacity: 0.75;
+      cursor: not-allowed;
+      transform: none !important;
+      filter: grayscale(0.2);
+      width: auto;
+      min-width: 160px;
+      padding: 0 20px;
+      font-size: 1.15rem;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255, 255, 255, 0.35);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Validation Error Bubble */
+    .slither-error-bubble {
+      background: rgba(220, 38, 38, 0.95);
+      border: 1.5px solid #f87171;
+      color: #fff;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-size: 0.84rem;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+      animation: fadeIn 0.2s ease;
+    }
+
+    .shake {
+      animation: shake 0.35s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Corner Widgets */
+    .corner-widget {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: #2ecc71;
+      font-weight: 700;
+      font-size: 0.88rem;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      z-index: 20;
+    }
+
+    .corner-bl { bottom: 24px; left: 28px; }
+    .corner-br { bottom: 24px; right: 28px; }
+    .corner-tr { top: 24px; right: 28px; color: #2ecc71; }
+
+    .corner-icon {
+      font-size: 2.2rem;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7));
+    }
+
+    .skin-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      background: rgba(30, 26, 48, 0.85);
+      padding: 6px 12px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .skin-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      outline: none;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .skin-option:hover { transform: scale(1.2); }
+    .skin-option.selected {
+      transform: scale(1.22);
+      border-color: #ffffff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+    }
+
+    .footer-links {
+      position: absolute;
+      bottom: 12px;
+      font-size: 0.75rem;
+      font-family: 'Outfit', sans-serif;
+      color: #4b4467;
+      letter-spacing: 0.5px;
+      z-index: 10;
+    }
+
+    /* Alert Banner (Error State) */
+    .alert-banner {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1.5px solid rgba(239, 68, 68, 0.5);
+      border-radius: 14px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: #fca5a5;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+
+    .alert-banner button {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Game Over Modal Preview */
+    .hud-preview-wrapper {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .hud-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .hud-panel {
+      background: rgba(22, 28, 38, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 14px 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .health-bar-container {
+      width: 220px;
+      height: 16px;
+      background: #25233c;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .health-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2ecc71, #10b981);
+      width: 85%;
+    }
+
+    .modal-card {
+      background: rgba(22, 28, 42, 0.96);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      padding: 32px 36px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.15);
+      text-align: center;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .stat-card {
+      background: #1b202d;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      text-align: left;
+    }
+
+    .stat-card.featured {
+      grid-column: span 2;
+      background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(168, 85, 247, 0.1));
+      border-color: rgba(46, 204, 113, 0.4);
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 12px 18px;
+      background: #25233c;
+      border: 1px solid #3c385c;
+      color: #f8fafc;
+      border-radius: 9999px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Demo Switcher Toolbar -->
+  <header class="demo-toolbar">
+    <div class="demo-title">
+      <span>🦎 <b>Lizard.io UI Prototype</b></span>
+      <span style="color: #7b6a98; font-weight: normal; font-size: 0.85rem;">(Аутентичный стиль Slither.io)</span>
+    </div>
+    <div class="demo-switcher" role="tablist" aria-label="Переключение состояний прототипа">
+      <button class="demo-btn active" data-state="state-default" role="tab" aria-selected="true">1. Начальный экран</button>
+      <button class="demo-btn" data-state="state-validation" role="tab" aria-selected="false">2. Ошибка валидации</button>
+      <button class="demo-btn" data-state="state-loading" role="tab" aria-selected="false">3. Загрузка / Спам-защита</button>
+      <button class="demo-btn" data-state="state-gameover" role="tab" aria-selected="false">4. HUD & Результат</button>
+      <button class="demo-btn" data-state="state-error" role="tab" aria-selected="false">5. Ошибка сети</button>
+    </div>
+  </header>
+
+  <main class="demo-container">
+
+    <!-- STATE 1: Default Slither Lobby -->
+    <section id="state-default" class="lobby-center">
+      <div class="slither-logo">
+        <span class="logo-green">lizard.</span><span class="logo-purple">io</span>
+      </div>
+      <div class="slither-subtitle">Eat berries to grow longer!</div>
+
+      <input class="slither-input" placeholder="Nickname" value="Геккон-Охотник" />
+
+      <button class="slither-play-btn">Play</button>
+    </section>
+
+    <!-- STATE 2: Validation Error -->
+    <section id="state-validation" class="lobby-center shake hidden">
+      <div class="slither-logo">
+        <span class="logo-green">lizard.</span><span class="logo-purple">io</span>
+      </div>
+      <div class="slither-subtitle">Eat berries to grow longer!</div>
+
+      <input class="slither-input input-error" placeholder="Nickname" value="Я" aria-invalid="true" />
+      
+      <div class="slither-error-bubble" role="alert">
+        <span>⚠️</span> <span>Имя должно содержать от 3 до 15 символов</span>
+      </div>
+
+      <button class="slither-play-btn">Play</button>
+    </section>
+
+    <!-- STATE 3: Loading / Anti-Spam -->
+    <section id="state-loading" class="lobby-center hidden">
+      <div class="slither-logo">
+        <span class="logo-green">lizard.</span><span class="logo-purple">io</span>
+      </div>
+      <div class="slither-subtitle">Eat berries to grow longer!</div>
+
+      <input class="slither-input" value="Быстрый_Варан" disabled />
+
+      <button class="slither-play-btn" disabled aria-busy="true">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Connecting...</span>
+      </button>
+
+      <div style="margin-top: 18px; color: #7b6a98; font-size: 0.85rem; font-family: 'Outfit';">
+        🛡️ Защита от спама: кнопка disabled, повторные клики блокируются.
+      </div>
+    </section>
+
+    <!-- STATE 4: HUD & Game Over Result -->
+    <section id="state-gameover" class="hud-preview-wrapper hidden">
+      <div class="hud-bar">
+        <div class="hud-panel">
+          <div style="font-weight: 700; font-size: 0.95rem;">🦎 Геккон-Охотник</div>
+          <div class="health-bar-container">
+            <div class="health-bar-fill"></div>
+          </div>
+          <div style="font-size: 0.85rem; color: #94a3b8; font-family: 'Outfit';">
+            <b>480 HP</b> &nbsp;|&nbsp; 🍓 38 ягод &nbsp;|&nbsp; ⚔️ 342 урона
+          </div>
+        </div>
+
+        <div class="hud-panel" style="text-align: right; font-family: 'Outfit';">
+          <div style="font-weight: 700; color: #f1c40f;">🏆 Топ Арены</div>
+          <div style="font-size: 0.85rem; color: #cbd5e1;">#1 Хищный Варан (620)</div>
+          <div style="font-size: 0.85rem; color: #4ade80;">#2 Геккон-Охотник (480)</div>
+        </div>
+      </div>
+
+      <div class="modal-card">
+        <h2 style="font-family: 'Comfortaa', 'Nunito', sans-serif; font-size: 2.15rem; font-weight: 700; color: #ffffff; margin-bottom: 14px; text-shadow: 0 4px 14px rgba(0,0,0,0.8);">Твою ящерицу победили!</h2>
+        <div style="background: #252238; border: 1px solid rgba(255,255,255,0.1); border-radius: 9999px; padding: 7px 18px; display: inline-block; font-size: 0.92rem; font-family: 'Outfit'; margin-bottom: 24px;">
+          <span>Победитель: <b style="color: #f87171;">Хищный Варан</b></span>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card featured">
+            <div style="font-size: 0.8rem; color: #94a3b8; font-family: 'Outfit';">🏆 Финальный счёт</div>
+            <div class="stat-value" style="color: #4ade80; font-size: 1.8rem;">480</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size: 0.8rem; color: #94a3b8; font-family: 'Outfit';">⏱️ Время жизни</div>
+            <div class="stat-value">03:42</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size: 0.8rem; color: #94a3b8; font-family: 'Outfit';">🍓 Ягод съедено</div>
+            <div class="stat-value">38</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size: 0.8rem; color: #94a3b8; font-family: 'Outfit';">⚔️ Урон врагам</div>
+            <div class="stat-value">342 HP</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size: 0.8rem; color: #94a3b8; font-family: 'Outfit';">🎯 Врагов добито</div>
+            <div class="stat-value">3</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size: 0.8rem; color: #94a3b8; font-family: 'Outfit';">🦎 Макс. размер</div>
+            <div class="stat-value">2.19x</div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="slither-play-btn" style="flex: 1.2; width: auto; font-size: 1.15rem;">
+            🔄 Играть снова
+          </button>
+          <button class="btn-secondary">
+            📋 Скопировать результат
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATE 5: Connection Error + Retry -->
+    <section id="state-error" class="lobby-center hidden">
+      <div class="alert-banner" role="alert">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>⚠️</span>
+          <span><b>Ошибка соединения:</b> Сервер арены недоступен.</span>
+        </div>
+        <button id="proto-retry-btn">Повторить</button>
+      </div>
+
+      <div class="slither-logo">
+        <span class="logo-green">lizard.</span><span class="logo-purple">io</span>
+      </div>
+      <div class="slither-subtitle">Пожалуйста, проверьте подключение к серверу.</div>
+
+      <input class="slither-input" value="Геккон-Охотник" disabled />
+
+      <button class="slither-play-btn" disabled>
+        <span>Offline</span>
+      </button>
+    </section>
+
+    <!-- Slither Corner Widgets -->
+    <div class="corner-widget corner-tr">
+      <span class="corner-icon">🦎</span>
+      <span style="font-size: 0.78rem;">Graphics: High quality</span>
+    </div>
+
+    <div class="corner-widget corner-bl">
+      <div class="skin-selector">
+        <div class="skin-option selected" style="background: linear-gradient(135deg, #2ecc71, #27ae60);"></div>
+        <div class="skin-option" style="background: linear-gradient(135deg, #e67e22, #d35400);"></div>
+        <div class="skin-option" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);"></div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <span class="corner-icon">🦎</span>
+        <span>Change Skin</span>
+      </div>
+    </div>
+
+    <div class="corner-widget corner-br">
+      <span class="corner-icon">🌐</span>
+      <span>Choose Server</span>
+    </div>
+
+    <div class="footer-links">privacy - terms of service - contact</div>
+
+  </main>
+
+  <script>
+    const switcherBtns = document.querySelectorAll('.demo-btn');
+    const sections = {
+      'state-default': document.getElementById('state-default'),
+      'state-validation': document.getElementById('state-validation'),
+      'state-loading': document.getElementById('state-loading'),
+      'state-gameover': document.getElementById('state-gameover'),
+      'state-error': document.getElementById('state-error')
+    };
+
+    switcherBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        switcherBtns.forEach((b) => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+
+        const targetState = btn.getAttribute('data-state');
+        Object.keys(sections).forEach((key) => {
+          if (key === targetState) {
+            sections[key].classList.remove('hidden');
+          } else {
+            sections[key].classList.add('hidden');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
